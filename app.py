@@ -262,7 +262,7 @@ async def volumes(kws):
         if not w or not ke: return v, w
         return await _ke(kws, ke)
     if ke: return await _ke(kws, ke)
-    return {}, "Keyword API not configured. Volumes are unavailable."
+    return {}, "No paid volume API key is set, so the tool shows free Google Trends interest (0-100) instead of monthly search volume."
 
 def csv_volumes():
     # Real volumes you looked up yourself (e.g. Google Keyword Planner). File: volumes.csv next to app.py, columns: keyword,volume
@@ -407,7 +407,7 @@ async def _check(domain, holder):
             tr = await asyncio.to_thread(_trends, need)
             for p in target:
                 if p["volume"] is None: p["trend"] = tr.get(p["keyword"])
-            if tr: warns.append("Where real volume is unavailable, 'Trends interest' is Google Trends popularity (0-100), not monthly searches.")
+            if tr: pass
         if os.getenv("ESTIMATE_VOLUME") == "1":
             miss = [p for p in target if p["volume"] is None and p["trend"] is None and p["keyword"]]
             for p in miss: p["volume"] = -estimate_volume(p["keyword"])
