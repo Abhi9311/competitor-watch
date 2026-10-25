@@ -81,6 +81,7 @@ def slug_title(u):
     return re.sub(r"[-_]+", " ", urlparse(u).path.rstrip("/").split("/")[-1]).strip().capitalize() or u
 
 PRICE_RE = re.compile(r"[$€£₹]\s?\d[\d,]*(?:\.\d+)?(?:\s?/\s?(?:mo|month|yr|year|user|seat))?")
+def _pk(s): return re.sub(r"\s", "", s)
 def price_tokens(html):
     t = HTMLParser(html)
     for n in t.css("script,style,nav,footer,header,noscript"): n.decompose()
@@ -88,11 +89,13 @@ def price_tokens(html):
     for n in t.css("*"):
         txt = (n.text(deep=True, separator=" ", strip=True) or "")
         if not txt or len(txt) > 40 or not PRICE_RE.search(txt): continue
-        if any((c.text(deep=True, separator=" ", strip=True) or "") and PRICE_RE.search(c.text(deep=True, separator=" ", strip=True) or "") for c in n.iter()): continue  # keep only the innermost price element
-        price = re.sub(r"\s", "", PRICE_RE.search(txt).group(0))
+        if any(PRICE_RE.search(c.text(deep=True, separator=" ", strip=True) or "") for c in n.iter()): continue  # innermost price element only
+        price = _pk(PRICE_RE.search(txt).group(0))
         label, p = None, n.parent
         for _ in range(6):
             if p is None: break
+            at = p.text(deep=True, separator=" ", strip=True) or ""
+            if len({re.sub(r"[\\s/].*$", "", _pk(m)) for m in PRICE_RE.findall(at)}) > 1: break  # too broad: this container holds several plans
             h = p.css_first("h1,h2,h3,h4,h5")
             if h:
                 ht = re.sub(r"\s+", " ", h.text(deep=True, strip=True) or "")
@@ -101,7 +104,7 @@ def price_tokens(html):
         out.add(f"{label}: {price}" if label else price)
     if not out:
         body = t.body.text(separator=" ", strip=True) if t.body else ""
-        out = {re.sub(r"\s", "", m) for m in PRICE_RE.findall(body)}
+        out = {_pk(m) for m in PRICE_RE.findall(body)}
     return sorted(out)
 
 def render_js(url):
